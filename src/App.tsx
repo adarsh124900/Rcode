@@ -13,6 +13,7 @@ import CodingChallenges from './components/CodingChallenges';
 import { auth, onAuthStateChanged, signOut } from './firebase';
 import { saveUserProfile, getUserProfile } from './dbService';
 import { BookOpen, Award, GraduationCap, Settings, Code, Trophy, Sparkles, MessageCircle, User, Medal, Target, LogOut, Cpu, Sun, Moon } from 'lucide-react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 const initialProgress = (): LanguageProgress => ({
   completedSessionIds: [],
@@ -853,6 +854,7 @@ export default function App() {
 
       </div>
 
+      <SpeedInsights />
     </div>
   );
 }
