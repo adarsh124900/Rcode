@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { CURRICULUM, TUTOR_PROFILES } from './data';
 import { Language, TutorStyle, ScoreCard, LanguageProgress } from './types';
 import TutorConfigurator from './components/TutorConfigurator';
@@ -853,6 +854,7 @@ export default function App() {
 
       </div>
 
+      <Analytics />
     </div>
   );
 }
