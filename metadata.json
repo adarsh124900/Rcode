@@ -1,0 +1,6 @@
+{
+  "name": "R-code",
+  "description": "Learn Python, C++, and Java through interactive coding tasks, customizable AI tutors, dynamic tests, and earn certificates of completion.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
