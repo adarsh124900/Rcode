@@ -12,7 +12,7 @@ import LeaderboardAndBadges from './components/LeaderboardAndBadges';
 import CodingChallenges from './components/CodingChallenges';
 import { auth, onAuthStateChanged, signOut } from './firebase';
 import { saveUserProfile, getUserProfile } from './dbService';
-import { BookOpen, Award, GraduationCap, Settings, Code, Trophy, Sparkles, MessageCircle, User, Medal, Target, LogOut, Cpu, Sun, Moon } from 'lucide-react';
+import { BookOpen, Award, GraduationCap, Settings, Code, Trophy, Sparkles, MessageCircle, User, Medal, Target, LogOut, Cpu, Sun, Moon, AlertCircle, X } from 'lucide-react';
 
 const initialProgress = (): LanguageProgress => ({
   completedSessionIds: [],
@@ -39,6 +39,19 @@ export default function App() {
   const [scoreCard, setScoreCard] = useState<ScoreCard>(defaultScoreCard);
   const [completedChallenges, setCompletedChallenges] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'learn' | 'syllabus' | 'challenges' | 'tests' | 'leaderboard' | 'capstone' | 'tutors'>('learn');
+  const [dbOfflineError, setDbOfflineError] = useState<boolean>(false);
+  const [showOfflineWarning, setShowOfflineWarning] = useState<boolean>(true);
+
+  // Listen for custom Firestore connection errors to handle gracefully
+  useEffect(() => {
+    const handleConnError = () => {
+      setDbOfflineError(true);
+    };
+    window.addEventListener('firestore-connection-error', handleConnError);
+    return () => {
+      window.removeEventListener('firestore-connection-error', handleConnError);
+    };
+  }, []);
 
   // Theme states
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -722,14 +735,55 @@ export default function App() {
           </div>
           
           <div className="hidden lg:flex items-center gap-2 text-[10px] text-slate-400 font-mono font-bold">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>CLOUD CONNECTED</span>
+            {dbOfflineError ? (
+              <div className="flex items-center gap-1.5 text-amber-500 dark:text-amber-400" title="Firestore is offline or unprovisioned. Local cache fallback is active.">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span>OFFLINE BACKUP ACTIVE</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-emerald-500">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>CLOUD CONNECTED</span>
+              </div>
+            )}
           </div>
         </nav>
 
         {/* CORE SCENARIO VIEWPORT */}
         <main className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
           <div className="max-w-7xl mx-auto">
+
+            {/* Firestore Database Connection Warning Banner */}
+            {dbOfflineError && showOfflineWarning && (
+              <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/60 rounded-xl relative flex items-start gap-3.5 shadow-sm animate-fade-in">
+                <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="text-sm font-extrabold text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                    Firestore Database Connection Issue Detected
+                  </h3>
+                  <p className="text-xs text-amber-700/90 dark:text-amber-400/90 mt-1 leading-relaxed">
+                    We could not establish a connection to Firestore under your custom Firebase project (<code className="px-1 py-0.5 bg-amber-100/60 dark:bg-amber-950/40 rounded font-mono text-[11px] font-bold">studio-9369216500-9932e</code>). This is typically because the Firestore Database service has not been initialized yet in your new Firebase Console.
+                  </p>
+                  <div className="mt-2.5 flex flex-wrap gap-x-6 gap-y-1.5 text-[11px] text-amber-800 dark:text-amber-400 font-semibold">
+                    <span className="flex items-center gap-1">
+                      <span className="w-1 h-1 rounded-full bg-amber-500" />
+                      <strong>How to Fix:</strong> Go to the <a href="https://console.firebase.google.com/" target="_blank" rel="noreferrer" className="underline hover:text-amber-950 dark:hover:text-amber-200">Firebase Console</a>, select your project, click <em>Firestore Database</em>, and click <strong>Create Database</strong>.
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-1 h-1 rounded-full bg-amber-500" />
+                      <strong>Offline Engine Active:</strong> No action needed to test! Your study progress, XP, and badges are being safely saved in your browser cache.
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowOfflineWarning(false)}
+                  className="p-1 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-950/40 text-amber-500 hover:text-amber-800 dark:text-amber-400 transition-colors cursor-pointer"
+                  title="Dismiss warning"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
             
             {/* TAB 1: LEARN STUDY WORKSPACE */}
             {activeTab === 'learn' && (

@@ -42,8 +42,20 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     if (docSnap.exists()) {
       return docSnap.data() as UserProfile;
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error fetching user profile:', err);
+    if (err instanceof Error && (err.message.includes('offline') || err.message.includes('not-allowed') || err.message.includes('permission-denied'))) {
+      window.dispatchEvent(new CustomEvent('firestore-connection-error', { detail: err.message }));
+    }
+    // Fallback to local storage for the registered user if offline / db not created
+    const local = window.localStorage.getItem(`offline_profile_${uid}`);
+    if (local) {
+      try {
+        return JSON.parse(local) as UserProfile;
+      } catch (localErr) {
+        console.error('Error parsing offline profile fallback:', localErr);
+      }
+    }
   }
   return null;
 }
@@ -63,11 +75,32 @@ export async function saveUserProfile(uid: string, profile: Partial<UserProfile>
     window.localStorage.setItem(localKey, JSON.stringify(updated));
     return;
   }
+
+  // Always save a local backup first so that offline work is never lost
+  try {
+    const localKey = `offline_profile_${uid}`;
+    const existing = window.localStorage.getItem(localKey);
+    let updated = { ...profile };
+    if (existing) {
+      try {
+        updated = { ...JSON.parse(existing), ...profile };
+      } catch (err) {
+        console.error('Error parsing local offline profile on update:', err);
+      }
+    }
+    window.localStorage.setItem(localKey, JSON.stringify(updated));
+  } catch (localErr) {
+    console.error('Failed to save profile to local backup:', localErr);
+  }
+
   try {
     const userRef = doc(db, 'users', uid);
     await setDoc(userRef, profile, { merge: true });
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error saving user profile:', err);
+    if (err instanceof Error && (err.message.includes('offline') || err.message.includes('not-allowed') || err.message.includes('permission-denied'))) {
+      window.dispatchEvent(new CustomEvent('firestore-connection-error', { detail: err.message }));
+    }
   }
 }
 
@@ -94,8 +127,11 @@ export async function getLeaderboard(): Promise<any[]> {
     }
 
     return users;
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error getting leaderboard:', err);
+    if (err instanceof Error && (err.message.includes('offline') || err.message.includes('not-allowed') || err.message.includes('permission-denied'))) {
+      window.dispatchEvent(new CustomEvent('firestore-connection-error', { detail: err.message }));
+    }
     // Return mock classmates as fallback
     return DEFAULT_CLASSMATES.map((c, i) => ({
       id: `mock_user_${i}`,
