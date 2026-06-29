@@ -1,9 +1,9 @@
 {
-  "projectId": "studio-9369216500-9932e",
+  "projectId": "sampleid",
   "appId": "1:513462358561:web:de672080bc8a45a1180960",
-  "apiKey": "AIzaSyDquo8zndr3FgHVktJv1PBeFZIdzkDQ2KY",
-  "authDomain": "studio-9369216500-9932e.firebaseapp.com",
-  "storageBucket": "studio-9369216500-9932e.firebasestorage.app",
-  "messagingSenderId": "513462358561",
+  "apiKey": "sampleapikey",
+  "authDomain": "sampleid",
+  "storageBucket": "sampleid",
+  "messagingSenderId": "idsample",
   "measurementId": ""
 }
