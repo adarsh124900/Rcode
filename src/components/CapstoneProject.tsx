@@ -41,9 +41,7 @@ export default function CapstoneProject({
       : null
   );
 
-  const [bypassRequirement, setBypassRequirement] = useState(false);
-
-  const isUnlocked = isCurriculumComplete || bypassRequirement;
+  const isUnlocked = isCurriculumComplete;
 
   const projectRequirements = getProjectRequirements(language);
 
@@ -162,13 +160,7 @@ export default function CapstoneProject({
               To unlock the final Capstone Project and earn your verified certificate, you must first complete all 12 sessions in your selected learning track syllabus.
             </p>
           </div>
-          <button
-            onClick={() => setBypassRequirement(true)}
-            className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100/70 border border-indigo-200 text-indigo-700 text-xs font-bold rounded-xl cursor-pointer flex items-center gap-2 mx-auto transition-colors"
-          >
-            <Unlock className="h-3.5 w-3.5" />
-            Bypass & Test Capstone Work
-          </button>
+
         </div>
       )}
 

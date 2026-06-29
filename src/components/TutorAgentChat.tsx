@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatMessage, TutorProfile, Language } from '../types';
 import { TUTOR_PROFILES } from '../data';
-import { Send, Sparkles, MessageCircle, RefreshCw, AlertCircle, Volume2 } from 'lucide-react';
+import { Send, Sparkles, MessageCircle, RefreshCw, AlertCircle, Volume2, GripVertical, X } from 'lucide-react';
 
 interface TutorAgentChatProps {
   tutorStyle: string;
   language: Language;
   chapterId: string;
   sessionId: string;
+  isFloating?: boolean;
+  onClose?: () => void;
 }
 
 export default function TutorAgentChat({
@@ -15,6 +17,8 @@ export default function TutorAgentChat({
   language,
   chapterId,
   sessionId,
+  isFloating = false,
+  onClose,
 }: TutorAgentChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -160,11 +164,12 @@ export default function TutorAgentChat({
   };
 
   return (
-    <div id="tutor-agent-chat-card" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs flex flex-col h-[520px]">
+    <div id="tutor-agent-chat-card" className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs flex flex-col ${isFloating ? 'h-full w-full' : 'h-[520px]'}`}>
       
       {/* Active Tutor Status Bar */}
-      <div className="px-6 py-4 bg-slate-50 dark:bg-slate-950 border-b border-slate-200/60 dark:border-slate-800/80 rounded-t-2xl flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className={`px-5 py-3.5 bg-slate-50 dark:bg-slate-950 border-b border-slate-200/60 dark:border-slate-800/80 rounded-t-2xl flex items-center justify-between ${isFloating ? 'drag-handle cursor-move select-none' : ''}`}>
+        <div className="flex items-center gap-2.5">
+          {isFloating && <GripVertical className="h-4 w-4 text-slate-400 dark:text-slate-600 shrink-0" />}
           <div className="text-2xl">{activeTutor.avatarEmoji}</div>
           <div>
             <h4 className="text-sm font-extrabold font-display text-slate-800 dark:text-slate-200">
@@ -176,14 +181,26 @@ export default function TutorAgentChat({
           </div>
         </div>
         
-        <button
-          id="reset-chat-btn"
-          onClick={handleResetChat}
-          title="Reset chat session"
-          className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            id="reset-chat-btn"
+            onClick={handleResetChat}
+            title="Reset chat session"
+            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </button>
+          
+          {isFloating && onClose && (
+            <button
+              onClick={onClose}
+              title="Close chat window"
+              className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Chat Messages Scrolling Body */}

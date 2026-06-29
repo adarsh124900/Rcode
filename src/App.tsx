@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CURRICULUM, TUTOR_PROFILES } from './data';
 import { Language, TutorStyle, ScoreCard, LanguageProgress } from './types';
 import TutorConfigurator from './components/TutorConfigurator';
@@ -12,7 +12,7 @@ import LeaderboardAndBadges from './components/LeaderboardAndBadges';
 import CodingChallenges from './components/CodingChallenges';
 import { auth, onAuthStateChanged, signOut } from './firebase';
 import { saveUserProfile, getUserProfile } from './dbService';
-import { BookOpen, Award, GraduationCap, Settings, Code, Trophy, Sparkles, MessageCircle, User, Medal, Target, LogOut, Cpu, Sun, Moon, AlertCircle, X } from 'lucide-react';
+import { BookOpen, Award, GraduationCap, Settings, Code, Trophy, Sparkles, MessageCircle, User, Medal, Target, LogOut, Cpu, Sun, Moon, AlertCircle, X, Bot, GripVertical, Menu } from 'lucide-react';
 
 const initialProgress = (): LanguageProgress => ({
   completedSessionIds: [],
@@ -39,8 +39,163 @@ export default function App() {
   const [scoreCard, setScoreCard] = useState<ScoreCard>(defaultScoreCard);
   const [completedChallenges, setCompletedChallenges] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'learn' | 'syllabus' | 'challenges' | 'tests' | 'leaderboard' | 'capstone' | 'tutors'>('learn');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [dbOfflineError, setDbOfflineError] = useState<boolean>(false);
   const [showOfflineWarning, setShowOfflineWarning] = useState<boolean>(true);
+  const [certAlert, setCertAlert] = useState<string | null>(null);
+
+  // Floating AI Tutor Ball & Chat states
+  const [tutorChatOpen, setTutorChatOpen] = useState(false);
+  const [ballPosition, setBallPosition] = useState({ x: typeof window !== 'undefined' ? window.innerWidth - 90 : 800, y: typeof window !== 'undefined' ? window.innerHeight - 150 : 600 });
+  const [chatPosition, setChatPosition] = useState({ x: typeof window !== 'undefined' ? window.innerWidth - 410 : 500, y: typeof window !== 'undefined' ? window.innerHeight - 660 : 200 });
+  const [isDraggingBall, setIsDraggingBall] = useState(false);
+  const [isDraggingChat, setIsDraggingChat] = useState(false);
+
+  const ballDragStart = useRef({ x: 0, y: 0 });
+  const ballStart = useRef({ x: 0, y: 0 });
+  const chatDragStart = useRef({ x: 0, y: 0 });
+  const chatStart = useRef({ x: 0, y: 0 });
+  const ballHasDragged = useRef(false);
+
+  // Auto-resize listener to keep floating coordinates within viewable window safely
+  useEffect(() => {
+    const handleResize = () => {
+      setBallPosition((prev) => {
+        const newX = Math.max(10, Math.min(window.innerWidth - 80, prev.x));
+        const newY = Math.max(10, Math.min(window.innerHeight - 80, prev.y));
+        return { x: newX, y: newY };
+      });
+      setChatPosition((prev) => {
+        const newX = Math.max(10, Math.min(window.innerWidth - 390, prev.x));
+        const newY = Math.max(10, Math.min(window.innerHeight - 530, prev.y));
+        return { x: newX, y: newY };
+      });
+    };
+    
+    // Set initial custom positions based on live size
+    handleResize();
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Ball mouse dragging handlers
+  const handleBallMouseDown = (e: React.MouseEvent) => {
+    setIsDraggingBall(true);
+    ballDragStart.current = { x: e.clientX, y: e.clientY };
+    ballStart.current = { x: ballPosition.x, y: ballPosition.y };
+    ballHasDragged.current = false;
+    e.preventDefault();
+  };
+
+  const handleBallTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsDraggingBall(true);
+      ballDragStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      ballStart.current = { x: ballPosition.x, y: ballPosition.y };
+      ballHasDragged.current = false;
+    }
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingBall) return;
+      const dx = e.clientX - ballDragStart.current.x;
+      const dy = e.clientY - ballDragStart.current.y;
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        ballHasDragged.current = true;
+      }
+      const newX = Math.max(10, Math.min(window.innerWidth - 80, ballStart.current.x + dx));
+      const newY = Math.max(10, Math.min(window.innerHeight - 80, ballStart.current.y + dy));
+      setBallPosition({ x: newX, y: newY });
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDraggingBall || e.touches.length !== 1) return;
+      const dx = e.touches[0].clientX - ballDragStart.current.x;
+      const dy = e.touches[0].clientY - ballDragStart.current.y;
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        ballHasDragged.current = true;
+      }
+      const newX = Math.max(10, Math.min(window.innerWidth - 80, ballStart.current.x + dx));
+      const newY = Math.max(10, Math.min(window.innerHeight - 80, ballStart.current.y + dy));
+      setBallPosition({ x: newX, y: newY });
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingBall(false);
+    };
+
+    if (isDraggingBall) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove);
+      window.addEventListener('touchend', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleMouseUp);
+    };
+  }, [isDraggingBall]);
+
+  // Chat panel mouse dragging handlers
+  const handleChatHeaderMouseDown = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('.drag-handle') && !target.closest('button')) {
+      setIsDraggingChat(true);
+      chatDragStart.current = { x: e.clientX, y: e.clientY };
+      chatStart.current = { x: chatPosition.x, y: chatPosition.y };
+      e.preventDefault();
+    }
+  };
+
+  const handleChatHeaderTouchStart = (e: React.TouchEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('.drag-handle') && !target.closest('button') && e.touches.length === 1) {
+      setIsDraggingChat(true);
+      chatDragStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      chatStart.current = { x: chatPosition.x, y: chatPosition.y };
+    }
+  };
+
+  useEffect(() => {
+    const handleChatMouseMove = (e: MouseEvent) => {
+      if (!isDraggingChat) return;
+      const dx = e.clientX - chatDragStart.current.x;
+      const dy = e.clientY - chatDragStart.current.y;
+      const newX = Math.max(10, Math.min(window.innerWidth - 380, chatStart.current.x + dx));
+      const newY = Math.max(10, Math.min(window.innerHeight - 520, chatStart.current.y + dy));
+      setChatPosition({ x: newX, y: newY });
+    };
+
+    const handleChatTouchMove = (e: TouchEvent) => {
+      if (!isDraggingChat || e.touches.length !== 1) return;
+      const dx = e.touches[0].clientX - chatDragStart.current.x;
+      const dy = e.touches[0].clientY - chatDragStart.current.y;
+      const newX = Math.max(10, Math.min(window.innerWidth - 380, chatStart.current.x + dx));
+      const newY = Math.max(10, Math.min(window.innerHeight - 520, chatStart.current.y + dy));
+      setChatPosition({ x: newX, y: newY });
+    };
+
+    const handleChatMouseUp = () => {
+      setIsDraggingChat(false);
+    };
+
+    if (isDraggingChat) {
+      window.addEventListener('mousemove', handleChatMouseMove);
+      window.addEventListener('mouseup', handleChatMouseUp);
+      window.addEventListener('touchmove', handleChatTouchMove);
+      window.addEventListener('touchend', handleChatMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleChatMouseMove);
+      window.removeEventListener('mouseup', handleChatMouseUp);
+      window.removeEventListener('touchmove', handleChatTouchMove);
+      window.removeEventListener('touchend', handleChatMouseUp);
+    };
+  }, [isDraggingChat]);
 
   // Listen for custom Firestore connection errors to handle gracefully
   useEffect(() => {
@@ -112,53 +267,8 @@ export default function App() {
           setCompletedChallenges([]);
         }
       } else {
-        const localGuest = window.localStorage.getItem('guest_user_session');
-        if (localGuest) {
-          try {
-            const guestUser = JSON.parse(localGuest);
-            setCurrentUser(guestUser);
-            const profile = await getUserProfile(guestUser.uid);
-            if (profile) {
-              setScoreCard({
-                languageProgress: profile.languageProgress || defaultScoreCard().languageProgress,
-                currentLanguage: (profile.currentLanguage || 'python') as Language,
-                currentChapterId: profile.currentChapterId || 'py_ch1',
-                currentSessionId: profile.currentSessionId || 'py_s1',
-                tutorStyle: (profile.tutorStyle || 'friendly') as TutorStyle,
-                studentName: profile.studentName || 'Guest Student',
-              });
-              setCompletedChallenges(profile.completedChallenges || []);
-            } else {
-              const tempName = window.localStorage.getItem('signup_name_temp') || 'Guest Student';
-              const newProfile = {
-                uid: guestUser.uid,
-                email: guestUser.email || '',
-                studentName: tempName,
-                points: 100,
-                badges: ['first_step'],
-                languageProgress: defaultScoreCard().languageProgress,
-                currentLanguage: 'python',
-                currentChapterId: 'py_ch1',
-                currentSessionId: 'py_s1',
-                tutorStyle: 'friendly',
-                completedChallenges: []
-              };
-              await saveUserProfile(guestUser.uid, newProfile);
-              setScoreCard({
-                ...defaultScoreCard(),
-                studentName: tempName
-              });
-              setCompletedChallenges([]);
-            }
-          } catch (e) {
-            console.error('Error reloading guest session:', e);
-            setCurrentUser(null);
-            window.localStorage.removeItem('user_email_session');
-          }
-        } else {
-          setCurrentUser(null);
-          window.localStorage.removeItem('user_email_session');
-        }
+        setCurrentUser(null);
+        window.localStorage.removeItem('user_email_session');
       }
       setAuthLoading(false);
     });
@@ -265,42 +375,6 @@ export default function App() {
       window.localStorage.setItem('signup_name_temp', name);
     }
     setCurrentUser(user);
-
-    if (user && user.uid.startsWith('guest_')) {
-      const profile = await getUserProfile(user.uid);
-      if (profile) {
-        setScoreCard({
-          languageProgress: profile.languageProgress || defaultScoreCard().languageProgress,
-          currentLanguage: (profile.currentLanguage || 'python') as Language,
-          currentChapterId: profile.currentChapterId || 'py_ch1',
-          currentSessionId: profile.currentSessionId || 'py_s1',
-          tutorStyle: (profile.tutorStyle || 'friendly') as TutorStyle,
-          studentName: profile.studentName || 'Guest Student',
-        });
-        setCompletedChallenges(profile.completedChallenges || []);
-      } else {
-        const tempName = name || 'Guest Student';
-        const newProfile = {
-          uid: user.uid,
-          email: user.email || '',
-          studentName: tempName,
-          points: 100,
-          badges: ['first_step'],
-          languageProgress: defaultScoreCard().languageProgress,
-          currentLanguage: 'python',
-          currentChapterId: 'py_ch1',
-          currentSessionId: 'py_s1',
-          tutorStyle: 'friendly',
-          completedChallenges: []
-        };
-        await saveUserProfile(user.uid, newProfile);
-        setScoreCard({
-          ...defaultScoreCard(),
-          studentName: tempName
-        });
-        setCompletedChallenges([]);
-      }
-    }
   };
 
   const handleSignOut = async () => {
@@ -312,6 +386,28 @@ export default function App() {
       setActiveTab('learn');
     }
   };
+
+  // Calculate completed chapters count across all languages (there are 12 chapters total, 4 per language)
+  const completedChaptersCount = Object.keys(CURRICULUM).reduce((count, langKey) => {
+    const lang = langKey as Language;
+    const chapters = CURRICULUM[lang];
+    const progress = scoreCard.languageProgress[lang] || initialProgress();
+    const chCount = chapters.filter((chapter) => {
+      // Check if all sessions in this chapter are completed
+      return chapter.sessions.every((session) =>
+        progress.completedSessionIds.includes(session.id)
+      );
+    }).length;
+    return count + chCount;
+  }, 0);
+
+  // Gate Certification Tab based on progress
+  useEffect(() => {
+    if (activeTab === 'capstone' && completedChaptersCount < 12) {
+      setCertAlert("Complete all 12 chapters to unlock your certification.");
+      setActiveTab('learn'); // Automatically redirect to Dashboard (Study Workspace)
+    }
+  }, [activeTab, completedChaptersCount]);
 
   const currentLanguage = scoreCard.currentLanguage;
   const currentChapterId = scoreCard.currentChapterId;
@@ -483,7 +579,7 @@ export default function App() {
     <div id="academy-app-root" className="h-screen w-full bg-slate-50 dark:bg-slate-950 flex overflow-hidden font-sans text-slate-800 dark:text-slate-100 transition-colors duration-200">
       
       {/* 1. LEFT SIDEBAR */}
-      <aside id="academy-sidebar" className="w-72 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 shrink-0 select-none">
+      <aside id="academy-sidebar" className={`${isSidebarCollapsed ? 'w-0 border-r-0' : 'w-72'} bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 shrink-0 select-none transition-all duration-300 ease-in-out overflow-hidden`}>
         
         {/* Branded Header */}
         <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-between shrink-0">
@@ -500,6 +596,13 @@ export default function App() {
               </span>
             </div>
           </div>
+          <button
+            onClick={() => setIsSidebarCollapsed(true)}
+            className="p-1 rounded-md text-slate-500 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Collapse Sidebar"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         {/* Track selector dropdown */}
@@ -630,6 +733,14 @@ export default function App() {
         <header className="h-16 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between shrink-0 select-none">
           
           <div className="flex items-center gap-6">
+            <button
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-500 dark:text-slate-400 transition-colors cursor-pointer mr-1 shrink-0"
+              title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+
             <div className="flex flex-col">
               <span className="text-[9px] text-indigo-500 dark:text-indigo-400 font-extrabold uppercase tracking-widest font-mono leading-none mb-1">
                 Active Session
@@ -784,29 +895,145 @@ export default function App() {
                 </button>
               </div>
             )}
+
+            {/* Certification Gate Notification Message */}
+            {certAlert && (
+              <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/60 rounded-xl relative flex items-center justify-between gap-3.5 shadow-sm animate-fade-in">
+                <div className="flex items-center gap-2.5">
+                  <AlertCircle className="h-5 w-5 text-rose-600 dark:text-rose-400 shrink-0" />
+                  <div>
+                    <h3 className="text-xs font-bold text-rose-800 dark:text-rose-300">
+                      Access Denied
+                    </h3>
+                    <p className="text-xs text-rose-700/90 dark:text-rose-400/90 mt-0.5 font-medium">
+                      {certAlert}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setCertAlert(null)}
+                  className="p-1 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/40 text-rose-500 hover:text-rose-800 dark:text-rose-400 transition-colors cursor-pointer"
+                  title="Dismiss warning"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Breadcrumb Navigation & Overall Progress Tracker */}
+            <div id="curriculum-breadcrumb-tracker" className="mb-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-2xs">
+              <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                <span className="font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">
+                  {currentLanguage === 'python' ? 'Python Academy' : currentLanguage === 'cpp' ? 'C++ Academy' : 'Java Academy'}
+                </span>
+                <span className="text-slate-300 dark:text-slate-700">/</span>
+                <span className="text-slate-700 dark:text-slate-300 font-semibold">
+                  {activeChapter.title.includes(':') ? activeChapter.title.split(':')[1]?.trim() : activeChapter.title}
+                </span>
+                <span className="text-slate-300 dark:text-slate-700">/</span>
+                <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-md font-bold text-[11px] border border-indigo-100/60 dark:border-indigo-900/40">
+                  {activeSession.title}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-4 text-xs font-semibold">
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                    <span>Curriculum Completion:</span>
+                    <strong className="text-slate-800 dark:text-slate-200 font-mono">
+                      {completedChaptersCount} / 12 chapters
+                    </strong>
+                  </div>
+                  <div className="w-48 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full transition-all duration-500" 
+                      style={{ width: `${(completedChaptersCount / 12) * 100}%` }}
+                    />
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => setActiveTab('syllabus')}
+                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-700 text-[11px] text-slate-600 dark:text-slate-300 font-bold rounded-lg transition-colors cursor-pointer"
+                >
+                  View Syllabus Map
+                </button>
+              </div>
+            </div>
             
             {/* TAB 1: LEARN STUDY WORKSPACE */}
             {activeTab === 'learn' && (
-              <div id="learn-practice-workspace-section" className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-                <div className="xl:col-span-8">
-                  <InteractiveEditor
-                    session={activeSession}
-                    tutorStyle={tutorStyle}
-                    onEvaluationSuccess={handleEvaluationSuccess}
-                    onNextLesson={handleNextLesson}
-                    hasPreviousLesson={hasPreviousLesson()}
-                    onPreviousLesson={handlePreviousLesson}
-                    hasNextLesson={hasNextLesson()}
-                  />
+              <div id="learn-practice-workspace-section" className="w-full relative">
+                <InteractiveEditor
+                  session={activeSession}
+                  tutorStyle={tutorStyle}
+                  onEvaluationSuccess={handleEvaluationSuccess}
+                  onNextLesson={handleNextLesson}
+                  hasPreviousLesson={hasPreviousLesson()}
+                  onPreviousLesson={handlePreviousLesson}
+                  hasNextLesson={hasNextLesson()}
+                />
+
+                {/* AI TUTOR ROLLING ORB (BALL) - Draggable and sleek */}
+                <div
+                  id="ai-tutor-floating-ball"
+                  style={{
+                    left: `${ballPosition.x}px`,
+                    top: `${ballPosition.y}px`,
+                    transform: isDraggingBall ? 'scale(1.1) rotate(15deg)' : 'scale(1)',
+                  }}
+                  onMouseDown={handleBallMouseDown}
+                  onTouchStart={handleBallTouchStart}
+                  onClick={() => {
+                    if (!ballHasDragged.current) {
+                      setTutorChatOpen(!tutorChatOpen);
+                    }
+                  }}
+                  className={`fixed z-50 w-16 h-16 rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing select-none transition-transform shadow-[0_10px_35px_rgba(99,102,241,0.25)] border-2 border-indigo-500 bg-slate-900/95 dark:bg-slate-900/95 text-white backdrop-blur-md group hover:border-indigo-400 active:scale-95`}
+                  title={`Click to chat with ${activeTutor.name}! Drag to roll around.`}
+                >
+                  {/* Pulsing Aura Rings */}
+                  <span className="absolute inset-0 rounded-full bg-indigo-500/20 animate-ping group-hover:bg-indigo-500/30 duration-1000" />
+                  <span className="absolute -inset-1 rounded-full border border-indigo-500/30 opacity-75 group-hover:scale-105 transition-all" />
+                  
+                  <div className="relative flex flex-col items-center justify-center">
+                    <span className="text-3xl filter drop-shadow-[0_2px_8px_rgba(99,102,241,0.5)] animate-bounce duration-1000">
+                      {activeTutor.avatarEmoji}
+                    </span>
+                    {/* Micro status indicator */}
+                    <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-slate-900 flex items-center justify-center">
+                      <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
+                    </span>
+                  </div>
+
+                  {/* Mini tooltip */}
+                  <div className="absolute right-full mr-3 bg-slate-950/95 border border-slate-800 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg whitespace-nowrap">
+                    💬 Talk to {activeTutor.name} (Drag me!)
+                  </div>
                 </div>
-                <div className="xl:col-span-4 sticky top-4">
-                  <TutorAgentChat
-                    tutorStyle={tutorStyle}
-                    language={currentLanguage}
-                    chapterId={currentChapterId}
-                    sessionId={currentSessionId}
-                  />
-                </div>
+
+                {/* FLOATING DRAGGABLE CHAT WINDOW */}
+                {tutorChatOpen && (
+                  <div
+                    id="floating-tutor-chat-window"
+                    style={{
+                      left: `${chatPosition.x}px`,
+                      top: `${chatPosition.y}px`,
+                    }}
+                    onMouseDown={handleChatHeaderMouseDown}
+                    onTouchStart={handleChatHeaderTouchStart}
+                    className="fixed z-50 w-[380px] max-w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-[0_15px_50px_rgba(0,0,0,0.3)] flex flex-col h-[520px] overflow-hidden animate-fade-in"
+                  >
+                    <TutorAgentChat
+                      tutorStyle={tutorStyle}
+                      language={currentLanguage}
+                      chapterId={currentChapterId}
+                      sessionId={currentSessionId}
+                      isFloating={true}
+                      onClose={() => setTutorChatOpen(false)}
+                    />
+                  </div>
+                )}
               </div>
             )}
 

@@ -98,19 +98,7 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
     }
   };
 
-  const handleGuestSignIn = () => {
-    setError('');
-    const guestId = 'guest_' + Math.floor(100000 + Math.random() * 900000);
-    const guestUser = {
-      uid: guestId,
-      email: 'guest_student@rcode.com',
-      isAnonymous: true,
-      displayName: 'Guest Student'
-    };
-    window.localStorage.setItem('signup_name_temp', 'Guest Student');
-    window.localStorage.setItem('guest_user_session', JSON.stringify(guestUser));
-    onAuthSuccess(guestUser, 'Guest Student');
-  };
+
 
   const handleSendResetOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -500,17 +488,10 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
                             </div>
                           </li>
                         </ol>
-                        <div className="pt-2 border-t border-slate-800/60 space-y-2">
+                        <div className="pt-2 border-t border-slate-800/60">
                           <p className="text-[10px] text-slate-400 font-medium">
-                            Don't want to configure Firebase right now? Bypass this setup instantly:
+                            Please ensure your Firebase settings allow these login methods above.
                           </p>
-                          <button
-                            type="button"
-                            onClick={handleGuestSignIn}
-                            className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                          >
-                            🚀 Enter as Guest (Instantly Skip Login)
-                          </button>
                         </div>
                       </div>
                     )}
@@ -651,15 +632,7 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
                   <span>Continue with Google</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={handleGuestSignIn}
-                  disabled={loading}
-                  className="w-full py-3 bg-indigo-900/40 hover:bg-indigo-900/60 text-indigo-200 hover:text-white rounded-xl text-xs font-bold transition-all shadow-md border border-indigo-800/60 flex items-center justify-center gap-2.5 cursor-pointer mt-1"
-                >
-                  <User className="h-4 w-4 text-indigo-400 shrink-0" />
-                  <span>Enter as Guest (Instant Demo / Skip Login)</span>
-                </button>
+
 
                 <div className="text-center pt-2">
                   <button
